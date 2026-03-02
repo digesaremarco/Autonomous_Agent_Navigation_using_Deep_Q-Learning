@@ -5,8 +5,10 @@ import numpy as np
 import random
 
 from src import config
-from network import QNetwork
-from replay_buffer import ReplayBuffer
+from src.network import QNetwork
+from src.replay_buffer import ReplayBuffer
+#from network import QNetwork
+#from replay_buffer import ReplayBuffer
 
 
 class DQNAgent:
