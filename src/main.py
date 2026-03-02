@@ -1,8 +1,9 @@
 from src.environment import Environment
 from src.planning import ValueIterationPlanner
 from src.visualizer import plot_static_path, animate_path
-from src import config 
+from src import config
 import numpy as np
+import torch
 
 def simulate_policy(planner, env, start_state, continuous_mode=False):
     mode_str = "CONTINUOUS" if continuous_mode else "DISCRETE"
@@ -95,47 +96,78 @@ def run_policy_tests(planner):
         print(f"  Action {action}: {count} states")
 
 if __name__ == "__main__":
+
     env = Environment()
     print("Environment created.")
 
-    planner = ValueIterationPlanner(env)
-    print("Planner created.")
+    method = config.METHOD.lower()
 
-    # Try loading first, otherwise train from scratch
-    if not planner.load_model():
-        print("No saved model found. Starting pre-computation and training...")
-        planner.precompute_collision_map()
-        planner.run_value_iteration()
+    # Algorithm Selection
+    if method == "vi":
+
+        planner = ValueIterationPlanner(env)
+        print("Using Value Iteration")
+
+        if not planner.load_model():
+            print("No saved model found. Starting pre-computation and training...")
+            planner.precompute_collision_map()
+            planner.run_value_iteration()
+        else:
+            print("Models loaded. Re-running pre-computation for collision map...")
+            planner.precompute_collision_map()
+
+    elif method == "q_learning":
+
+        from src.q_learning_tabular import QLearningTabular
+
+        planner = QLearningTabular(env)
+        print("Using Tabular Q-Learning")
+
+        planner.train()
+
+        # Convert Q-table to policy (same format as VI)
+        planner.policy = planner.extract_policy()
+
+
+    elif method == "dqn":
+
+        from src.dqn_agent import DQNAgent
+
+        print("Using Deep Q-Network")
+
+        state_dim = 6  # per prova
+        action_dim = len(config.ACTIONS)
+        planner = DQNAgent(
+            state_dim=state_dim,
+            action_dim=action_dim,
+            device="cuda" if torch.cuda.is_available() else "cpu"
+        )
+
+        planner.train(env, num_episodes=3000)
+        planner.policy = planner.extract_policy(env)
+
     else:
-        print("Models loaded. Re-running pre-computation for collision map...")
-        # We need the collision map for simulation, even if V is loaded
-        planner.precompute_collision_map()
+        raise ValueError(f"Unknown METHOD in config: {config.METHOD}")
 
+
+    # Policy Tests
     run_policy_tests(planner)
 
     print("\n RUNNING SIMULATIONS AND VISUALIZATION")
 
-    # Simulation scenarios
     start_states = [
         (10, 10, 0),
         (50, 50, 18),
         (70, 72, 0)
     ]
 
-    for i, start_state in enumerate(start_states, 1):
-        if planner.policy[start_state] != -1:
-            
-            #SIMULAZIONE 1: DISCRETA
-            print(f"--- Running Discrete Sim {i} ---")
-            path_disc = simulate_policy(planner, env, start_state, continuous_mode=False)
-            plot_static_path(env, path_disc, title=f"Sim_{i}_Discrete_{start_state}")
-            animate_path(env, path_disc, title=f"Anim_{i}_Discrete_{start_state}")
+    for start_state in start_states:
+        # Simulate discrete path
+        path = simulate_policy(planner, env, start_state, continuous_mode=False)
+        #plot_static_path(env, path, title=f"Discrete Path from {start_state}")
+        #animate_path(env, path, title=f"Discrete Animation from {start_state}")
 
-            # SIMULAZIONE 2: CONTINUA
-            print(f"--- Running Continuous Sim {i} ---")
-            path_cont = simulate_policy(planner, env, start_state, continuous_mode=True)
-            plot_static_path(env, path_cont, title=f"Sim_{i}_Continuous_{start_state}")
-            animate_path(env, path_cont, title=f"Anim_{i}_Continuous_{start_state}")
-
-        else:
-            print(f"\nSkipping simulation from {start_state} (Invalid starting policy -1)")
+        # Simulate continuous path
+        cont_path = simulate_policy(planner, env, start_state, continuous_mode=True)
+        #plot_static_path(env, cont_path, title=f"Continuous Path from {start_state}")
+        #animate_path(env, cont_path, title=f"Continuous Animation from {start_state}")

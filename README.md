@@ -67,7 +67,7 @@ The application entry point that orchestrates the entire process.
 * **Initialization:** Creates instances of `Environment` and `ValueIterationPlanner`.
 * **Model Management:** Checks if pre-trained models (`v.npy`, `policy.npy`) exist. If not found, it automatically starts pre-computation and training.
 * **Testing and Validation:** Tests the agent in the ideal grid world where it learned.
-* **Continuous Simulation:**Tests the agent in a realistic continuous world. The script handles the translation between the continuous robot position and the discrete policy lookup (using nearest-neighbor rounding).
+* **Continuous Simulation:** Tests the agent in a realistic continuous world. The script handles the translation between the continuous robot position and the discrete policy lookup (using nearest-neighbor rounding).
 
 ## How to Run
 
@@ -82,7 +82,7 @@ The application entry point that orchestrates the entire process.
     ```bash
     python main.py
     ```
-    * On the first run, the script will perform the **collision map pre-computation** (may take a few minutes) and the **Value Iteration** algorithm (on a 7th gen Intel Core i3 CPU, full training took approximately 4 hours).
+    * On the first run, the script will perform the **collision map pre-computation** (may take a few minutes) and the **Value Iteration** algorithm.
     * Trained models (`v.npy`, `policy.npy`) will be saved for faster future executions.
     * Several test simulations will be run, saving results as static images (`.png`) and animations (`.gif`).
 

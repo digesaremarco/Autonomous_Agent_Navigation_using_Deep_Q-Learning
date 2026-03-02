@@ -88,12 +88,36 @@ class Environment:
 
         next_state = (next_x, next_y, next_theta)
 
+        # --- Distance shaping ---
+        goal_x, goal_y, _ = self.config.GOAL_STATE
+
+        prev_distance = np.sqrt((x - goal_x) ** 2 + (y - goal_y) ** 2)
+        new_distance = np.sqrt((next_x - goal_x) ** 2 + (next_y - goal_y) ** 2)
+
+        # Positive reward if moving closer
+        reward += 5 * (prev_distance - new_distance)
+
+        # Terminal checks
+        if self.is_collision(next_state):
+            reward += self.config.R_COLLISION
+            terminated = True
+            #next_state = state  # stay in place if collision, but allow learning to recover instead of ending episode immediately
+            #terminated = False  # don't end episode on collision to allow learning recovery strategies
+
+        elif self.is_goal(next_state):
+            reward += self.config.R_GOAL
+            terminated = True
+
+        '''next_state = (next_x, next_y, next_theta)
+
         if self.is_collision(next_state):
             reward = self.config.R_COLLISION
             terminated = True
             # state *in* collision, not the previous one.
         elif self.is_goal(next_state):
             reward = self.config.R_GOAL
-            terminated = True
+            terminated = True'''
 
         return next_state, reward, terminated
+
+
