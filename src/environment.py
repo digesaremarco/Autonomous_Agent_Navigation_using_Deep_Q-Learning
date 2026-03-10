@@ -94,6 +94,15 @@ class Environment:
         prev_distance = np.sqrt((x - goal_x) ** 2 + (y - goal_y) ** 2)
         new_distance = np.sqrt((next_x - goal_x) ** 2 + (next_y - goal_y) ** 2)
 
+        # Angle shaping: reward for facing towards the goal
+        goal_theta = np.arctan2(goal_y - y, goal_x - x)
+        robot_theta = theta_idx * self.config.DELTA_THETA_RAD
+
+        angle_diff = abs(goal_theta - robot_theta)
+        angle_diff = min(angle_diff, 2 * np.pi - angle_diff)
+
+        reward += 0.1 * (np.pi - angle_diff)
+
         # Positive reward if moving closer
         reward += 5 * (prev_distance - new_distance)
 

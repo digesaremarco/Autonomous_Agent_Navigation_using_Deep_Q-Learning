@@ -57,8 +57,8 @@ OBSTACLES_VERTICES = [
 # Rewards
 R_GOAL = 100.0  # Increased to strongly encourage reaching goal
 R_COLLISION = -100.0  # Reduced penalty to allow recovery learning
-R_STEP = -0.1  # Increased to discourage wandering
-R_ROTATE = -0.1  # Penalize unnecessary rotations
+R_STEP = -0.05  # Increased to discourage wandering #0.1
+R_ROTATE = -0.3  # Penalize unnecessary rotations
 R_DRIFT_PENALTY = -10.0  # Reduced drift penalty
 
 # RL params

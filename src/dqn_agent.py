@@ -7,8 +7,7 @@ import random
 from src import config
 from src.network import QNetwork
 from src.replay_buffer import ReplayBuffer
-#from network import QNetwork
-#from replay_buffer import ReplayBuffer
+
 
 
 class DQNAgent:
@@ -21,7 +20,7 @@ class DQNAgent:
         batch_size=64,
         gamma=0.99,
         lr=1e-4,
-        tau=0.005,
+        tau=0.001,
         epsilon_start=1.0,
         epsilon_end=0.05,
         epsilon_decay=100000
@@ -110,8 +109,13 @@ class DQNAgent:
 
         # Target Q values
         with torch.no_grad():
-            max_next_q = self.target_net(next_state).max(1)[0]
-            target_q = reward + self.gamma * max_next_q * (1 - done)
+            #max_next_q = self.target_net(next_state).max(1)[0]
+            #target_q = reward + self.gamma * max_next_q * (1 - done)
+
+            # Double DQN: action selection from q_net, evaluation from target_net
+            next_actions = self.q_net(next_state).argmax(1)
+            next_q = self.target_net(next_state).gather(1, next_actions.unsqueeze(1)).squeeze(1)
+            target_q = reward + self.gamma * next_q * (1 - done)
 
         # Loss
         loss = self.loss_fn(current_q, target_q)
@@ -153,9 +157,13 @@ class DQNAgent:
 
         for episode in range(num_episodes):
 
-            x = np.random.randint(0, config.NX)
-            y = np.random.randint(0, config.NY)
-            theta = np.random.randint(0, config.N_THETA)
+            while True:
+                x = np.random.randint(0, config.NX)
+                y = np.random.randint(0, config.NY)
+                theta = np.random.randint(0, config.N_THETA)
+
+                if not env.is_collision((x, y, theta)):
+                    break
 
             theta_rad = theta * config.DELTA_THETA_RAD
             goal_x, goal_y = config.GOAL_POS
