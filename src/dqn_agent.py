@@ -15,7 +15,7 @@ class DQNAgent:
         self,
         state_dim,
         action_dim,
-        device="cpu",
+        device="cuda" if torch.cuda.is_available() else "cpu",
         buffer_capacity=100_000,
         batch_size=64,
         gamma=0.99,
