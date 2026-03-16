@@ -55,7 +55,7 @@ OBSTACLES_VERTICES = [
 #OBSTACLES_VERTICES = []
 
 # Rewards
-R_GOAL = 100.0  # Increased to strongly encourage reaching goal
+R_GOAL = 200.0  # Increased to strongly encourage reaching goal
 R_COLLISION = -100.0  # Reduced penalty to allow recovery learning
 R_STEP = -0.05  # Increased to discourage wandering #0.1
 R_ROTATE = -0.3  # Penalize unnecessary rotations

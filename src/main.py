@@ -235,7 +235,7 @@ if __name__ == "__main__":
             device="cuda" if torch.cuda.is_available() else "cpu"
         )
 
-        planner.train(env, num_episodes=2100)
+        planner.train(env, num_episodes=config.N_EPISODES)
 
     else:
         raise ValueError(f"Unknown METHOD in config: {config.METHOD}")

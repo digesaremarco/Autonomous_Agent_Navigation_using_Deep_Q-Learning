@@ -129,10 +129,10 @@ class Environment:
         angle_diff = abs(goal_theta - robot_theta)
         angle_diff = min(angle_diff, 2 * np.pi - angle_diff)
 
-        reward += 0.1 * (np.pi - angle_diff)
+        #reward += 0.1 * (np.pi - angle_diff)
 
         # Positive reward if moving closer
-        reward += 5 * (prev_distance - new_distance)
+        #reward += 5 * (prev_distance - new_distance)
 
         # Terminal checks
         if self.is_collision(next_state):
