@@ -289,3 +289,36 @@ class DQNAgent:
 
         print("Policy extraction completed.", flush=True)
         return policy
+
+    def greedy_action(self, env, state_triplet):
+        """
+        Get the greedy action for a given state by querying the Q-network
+        """
+        x, y, theta = state_triplet
+
+        theta_rad = theta * config.DELTA_THETA_RAD
+        goal_x, goal_y = config.GOAL_POS
+        sensors = env.get_sensors((x, y, theta))
+
+        state = np.array([
+            x / config.NX,
+            y / config.NY,
+            np.sin(theta_rad),
+            np.cos(theta_rad),
+            (goal_x - x) / config.NX,
+            (goal_y - y) / config.NY,
+            sensors[0],
+            sensors[1],
+            sensors[2]
+        ], dtype=np.float32)
+
+        state_t = torch.tensor(
+            state, dtype=torch.float32
+        ).unsqueeze(0).to(self.device)
+
+        self.q_net.eval()
+        with torch.no_grad():
+            q_values = self.q_net(state_t)
+            action = q_values.argmax(dim=1).item()
+
+        return action

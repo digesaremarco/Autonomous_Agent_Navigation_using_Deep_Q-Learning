@@ -100,29 +100,17 @@ def run_dqn_policy_tests(planner, env):
     print("\nStarting DQN Policy Tests")
 
     test_cases = [
-
-        # Collision states
         ("Collision State (inside obstacle)", (50, 32, 0), lambda a: True),
-
-        # Goal
         ("Goal State", config.GOAL_STATE, lambda a: True),
-
-        # Safe states
         ("Safe State (10,10,0)", (10, 10, 0), lambda a: a in config.ACTIONS.values()),
         ("Safe State (20,80,10)", (20, 80, 10), lambda a: a in config.ACTIONS.values()),
-
-        # Near goal
         ("Near Goal Forward", (82, 94, config.GOAL_STATE[2]),
          lambda a: a == config.ACTIONS['MOVE_FORWARD']),
-
-        # Wrong orientation near goal
-        ("Near Goal Wrong Orientation", (82, 94, (config.GOAL_STATE[2]+10) % config.N_THETA),
+        ("Near Goal Wrong Orientation", (82, 94, (config.GOAL_STATE[2] + 10) % config.N_THETA),
          lambda a: a in [
              config.ACTIONS['TURN_LEFT'],
              config.ACTIONS['TURN_RIGHT']
          ]),
-
-        # Facing wall
         ("Facing Wall", (10, 30, config.GOAL_STATE[2]),
          lambda a: a != config.ACTIONS['MOVE_FORWARD']),
     ]
@@ -130,14 +118,13 @@ def run_dqn_policy_tests(planner, env):
     success_count = 0
 
     for name, state, test_lambda in test_cases:
-
         x, y, theta = state
 
         if not (0 <= x < config.NX and 0 <= y < config.NY):
             print(f"[ERROR] Test '{name}': State {state} out of bounds")
             continue
 
-        action = planner.policy[x, y, theta]
+        action = planner.greedy_action(env, state)
 
         if test_lambda(action):
             print(f"[SUCCESS] {name} → Action {action}")
@@ -148,6 +135,57 @@ def run_dqn_policy_tests(planner, env):
     print("\nDQN Policy Tests Completed")
     print(f"Result: {success_count}/{len(test_cases)} passed")
 
+def simulate_dqn_policy(planner, env, start_state, continuous_mode=False):
+    mode_str = "CONTINUOUS" if continuous_mode else "DISCRETE"
+    print(f"\n Starting {mode_str} DQN Simulation from {start_state} ")
+
+    path = [start_state]
+    current_state = start_state
+    max_steps = config.NX * config.NY
+
+    for i in range(max_steps):
+        x, y, theta = current_state
+
+        ix = int(np.round(x))
+        iy = int(np.round(y))
+        ix = max(0, min(ix, config.NX - 1))
+        iy = max(0, min(iy, config.NY - 1))
+
+        action = planner.greedy_action(env, (ix, iy, theta))
+
+        next_state, reward, terminated = env.step(
+            current_state,
+            action,
+            continuous=continuous_mode
+        )
+
+        path.append(next_state)
+        current_state = next_state
+
+        if terminated:
+            if env.is_goal(current_state):
+                print(f"RESULT: SUCCESS! Goal reached in {i+1} steps.")
+            else:
+                print(f"RESULT: COLLISION! (State {current_state}) in {i+1} steps.")
+            break
+    else:
+        print(f"RESULT: TIMEOUT! {max_steps} steps limit reached.")
+
+    # Path summary for quick debugging
+    if len(path) > 10:
+        print("Path (first 5):")
+        for j in range(5):
+            print(f"  {j}: {path[j]}")
+        print("  ...")
+        print("Path (last 5):")
+        for j in range(len(path) - 5, len(path)):
+            print(f"  {j}: {path[j]}")
+    else:
+        print("Path:")
+        for j, state in enumerate(path):
+            print(f"  {j}: {state}")
+
+    return path
 
 if __name__ == "__main__":
 
@@ -198,28 +236,9 @@ if __name__ == "__main__":
         )
 
         planner.train(env, num_episodes=2100)
-        planner.policy = planner.extract_policy(env)
-        # save the policy for later use
-        np.save('dqn_policy.npy', planner.policy)
 
     else:
         raise ValueError(f"Unknown METHOD in config: {config.METHOD}")
-
-
-    if method in ["vi", "q_learning"]:
-        run_policy_tests(planner) # Policy Tests
-
-    elif method == "dqn":
-        # load the policy if not already in memory (e.g. after training or from a previous run)
-        if not hasattr(planner, 'policy'):
-            try:
-                planner.policy = np.load('dqn_policy.npy')
-                print("DQN policy loaded from file.")
-            except FileNotFoundError:
-                print("DQN policy file not found. Please run training first to generate 'dqn_policy.npy'.")
-                planner.policy = None
-
-        run_dqn_policy_tests(planner, env)
 
 
     print("\n RUNNING SIMULATIONS AND VISUALIZATION")
@@ -230,13 +249,31 @@ if __name__ == "__main__":
         (70, 72, 0)
     ]
 
+
+    if method in ["vi", "q_learning"]:
+        run_policy_tests(planner) # Policy Tests
+
+        for start_state in start_states:
+            # Simulate discrete path
+            path = simulate_policy(planner, env, start_state, continuous_mode=False)
+            plot_static_path(env, path, title=f"Discrete Path from {start_state}")
+            animate_path(env, path, title=f"Discrete Animation from {start_state}")
+
+            # Simulate continuous path
+            cont_path = simulate_policy(planner, env, start_state, continuous_mode=True)
+            plot_static_path(env, cont_path, title=f"Continuous Path from {start_state}")
+            animate_path(env, cont_path, title=f"Continuous Animation from {start_state}")
+
+    elif method == "dqn":
+        run_dqn_policy_tests(planner, env)
+
     for start_state in start_states:
         # Simulate discrete path
-        path = simulate_policy(planner, env, start_state, continuous_mode=False)
+        path = simulate_dqn_policy(planner, env, start_state, continuous_mode=False)
         plot_static_path(env, path, title=f"Discrete Path from {start_state}")
-        #animate_path(env, path, title=f"Discrete Animation from {start_state}")
+        animate_path(env, path, title=f"Discrete Animation from {start_state}")
 
         # Simulate continuous path
-        cont_path = simulate_policy(planner, env, start_state, continuous_mode=True)
+        cont_path = simulate_dqn_policy(planner, env, start_state, continuous_mode=True)
         plot_static_path(env, cont_path, title=f"Continuous Path from {start_state}")
-        #animate_path(env, cont_path, title=f"Continuous Animation from {start_state}")
+        animate_path(env, cont_path, title=f"Continuous Animation from {start_state}")
