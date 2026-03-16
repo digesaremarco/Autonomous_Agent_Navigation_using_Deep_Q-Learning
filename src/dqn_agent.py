@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 import random
+from tqdm import tqdm
 
 from src import config
 from src.network import QNetwork
@@ -200,12 +201,12 @@ class DQNAgent:
                 ntheta_rad = ntheta * config.DELTA_THETA_RAD
                 sensors = env.get_sensors((nx, ny, ntheta))
                 next_state = np.array([
-                    x / config.NX,
-                    y / config.NY,
+                    nx / config.NX,
+                    ny / config.NY,
                     np.sin(ntheta_rad),
                     np.cos(ntheta_rad),
-                    (goal_x - x) / config.NX,
-                    (goal_y - y) / config.NY,
+                    (goal_x - nx) / config.NX,
+                    (goal_y - ny) / config.NY,
                     sensors[0],
                     sensors[1],
                     sensors[2]
@@ -251,35 +252,40 @@ class DQNAgent:
         )
 
         self.q_net.eval()
-
         goal_x, goal_y = config.GOAL_POS
 
+        total_states = config.NX * config.NY * config.N_THETA
+
         with torch.no_grad():
-            for x in range(config.NX):
-                for y in range(config.NY):
-                    for theta in range(config.N_THETA):
-                        theta_rad = theta * config.DELTA_THETA_RAD
+            with tqdm(total=total_states, desc="Extracting policy", unit="state") as pbar:
+                for x in range(config.NX):
+                    for y in range(config.NY):
+                        for theta in range(config.N_THETA):
+                            theta_rad = theta * config.DELTA_THETA_RAD
 
-                        # --- sensors ---
-                        sensors = env.get_sensors((x, y, theta))
+                            sensors = env.get_sensors((x, y, theta))
 
-                        state = np.array([
-                            x / config.NX,
-                            y / config.NY,
-                            np.sin(theta_rad),
-                            np.cos(theta_rad),
-                            (goal_x - x) / config.NX,
-                            (goal_y - y) / config.NY,
-                            sensors[0],  # front
-                            sensors[1],  # left
-                            sensors[2]  # right
-                        ], dtype=np.float32)
+                            state = np.array([
+                                x / config.NX,
+                                y / config.NY,
+                                np.sin(theta_rad),
+                                np.cos(theta_rad),
+                                (goal_x - x) / config.NX,
+                                (goal_y - y) / config.NY,
+                                sensors[0],  # front
+                                sensors[1],  # left
+                                sensors[2]  # right
+                            ], dtype=np.float32)
 
-                        state_t = torch.tensor(state).unsqueeze(0).to(self.device)
+                            state_t = torch.tensor(
+                                state, dtype=torch.float32
+                            ).unsqueeze(0).to(self.device)
 
-                        q_values = self.q_net(state_t)
-                        best_action = q_values.argmax(dim=1).item()
+                            q_values = self.q_net(state_t)
+                            best_action = q_values.argmax(dim=1).item()
 
-                        policy[x, y, theta] = best_action
+                            policy[x, y, theta] = best_action
+                            pbar.update(1)
 
+        print("Policy extraction completed.", flush=True)
         return policy
