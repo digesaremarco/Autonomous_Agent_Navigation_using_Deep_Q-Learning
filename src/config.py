@@ -4,9 +4,6 @@ import numpy as np
 NX = 100
 NY = 100
 
-# per prova
-#NX = 40
-#NY = 40
 
 # Orientation
 DELTA_THETA_DEG = 5.0
@@ -35,10 +32,7 @@ GOAL_POS = (82, 95)
 GOAL_THETA_IDX = int(270.0 / DELTA_THETA_DEG) # 270 degrees
 GOAL_STATE = (GOAL_POS[0], GOAL_POS[1], GOAL_THETA_IDX)
 
-# per prova
-#GOAL_POS = (30, 30)
-#GOAL_THETA_IDX = 0
-#GOAL_STATE = (30, 30, 0)
+
 
 # Obstacles (polygons)
 OBSTACLES_VERTICES = [
@@ -51,25 +45,23 @@ OBSTACLES_VERTICES = [
     [(85, 0), (85, 100), (100, 100), (100, 0)],
 ]
 
-# per prova
-#OBSTACLES_VERTICES = []
 
 # Rewards
-R_GOAL = 200.0  # Increased to strongly encourage reaching goal
-R_COLLISION = -100.0  # Reduced penalty to allow recovery learning
-R_STEP = -0.05  # Increased to discourage wandering #0.1
-R_ROTATE = -0.3  # Penalize unnecessary rotations
-R_DRIFT_PENALTY = -10.0  # Reduced drift penalty
+R_GOAL = 200.0
+R_COLLISION = -100.0
+R_STEP = -0.05
+R_ROTATE = -0.3
+R_DRIFT_PENALTY = -10.0
 
 # RL params
 GAMMA = 0.99
 VI_CONVERGENCE_THRESHOLD = 1e-4
 
-ALPHA = 0.2  # Increased learning rate for faster convergence
+ALPHA = 0.2
 EPSILON_START = 1.0
-EPSILON_END = 0.05  # Increased minimum exploration
+EPSILON_END = 0.05
 EPSILON_DECAY_STEPS = 10000
-N_EPISODES = 100000  # Doubled episodes for better training
+N_EPISODES = 2500
 MAX_STEPS_PER_EPISODE = 500
 
 # Planning / RL method selection

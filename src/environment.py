@@ -117,10 +117,17 @@ class Environment:
         next_state = (next_x, next_y, next_theta)
 
         # --- Distance shaping ---
-        goal_x, goal_y, _ = self.config.GOAL_STATE
+        #goal_x, goal_y, _ = self.config.GOAL_STATE
+        if 40 <= y <= 80:
+            goal_x, goal_y = 20, 70 # intermediate waypoint to encourage navigating through the gap
+        else:
+            goal_x, goal_y, _ = self.config.GOAL_STATE
 
         prev_distance = np.sqrt((x - goal_x) ** 2 + (y - goal_y) ** 2)
         new_distance = np.sqrt((next_x - goal_x) ** 2 + (next_y - goal_y) ** 2)
+
+        # Positive reward if moving closer
+        reward += 5 * (prev_distance - new_distance)
 
         # Angle shaping: reward for facing towards the goal
         goal_theta = np.arctan2(goal_y - y, goal_x - x)
@@ -129,10 +136,9 @@ class Environment:
         angle_diff = abs(goal_theta - robot_theta)
         angle_diff = min(angle_diff, 2 * np.pi - angle_diff)
 
-        #reward += 0.1 * (np.pi - angle_diff)
+        reward += 0.1 * (np.pi - angle_diff)
 
-        # Positive reward if moving closer
-        #reward += 5 * (prev_distance - new_distance)
+
 
         # Terminal checks
         if self.is_collision(next_state):
@@ -145,15 +151,6 @@ class Environment:
             reward += self.config.R_GOAL
             terminated = True
 
-        '''next_state = (next_x, next_y, next_theta)
-
-        if self.is_collision(next_state):
-            reward = self.config.R_COLLISION
-            terminated = True
-            # state *in* collision, not the previous one.
-        elif self.is_goal(next_state):
-            reward = self.config.R_GOAL
-            terminated = True'''
 
         return next_state, reward, terminated
 

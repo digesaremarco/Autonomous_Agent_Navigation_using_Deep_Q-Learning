@@ -238,7 +238,6 @@ class DQNAgent:
                 print(f"Average Reward (last 100): {avg_reward:.2f}")
                 print(f"Average Loss   (last 100): {avg_loss:.5f}")
                 print(f"Epsilon: {self.epsilon:.4f}")
-                #print("--------------------------------------------------")
 
     def extract_policy(self, env):
         """
