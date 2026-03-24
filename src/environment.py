@@ -118,7 +118,7 @@ class Environment:
 
         # --- Distance shaping ---
         #goal_x, goal_y, _ = self.config.GOAL_STATE
-        if 40 <= y <= 70:
+        if 40 <= y <= 65:
             goal_x, goal_y = 20, 75 # intermediate waypoint to encourage navigating through the gap
         else:
             goal_x, goal_y, _ = self.config.GOAL_STATE

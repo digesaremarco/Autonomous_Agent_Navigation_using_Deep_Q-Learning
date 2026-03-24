@@ -24,7 +24,7 @@ class DQNAgent:
         tau=0.001,
         epsilon_start=1.0,
         epsilon_end=0.05,
-        epsilon_decay=100000
+        epsilon_decay=200000
     ):
 
         self.device = torch.device(device)
