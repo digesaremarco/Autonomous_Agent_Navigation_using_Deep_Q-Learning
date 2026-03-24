@@ -145,6 +145,47 @@ class DQNAgent:
                 self.tau * param.data + (1.0 - self.tau) * target_param.data
             )
 
+    def sample_start_state(self, env, episode):
+        '''
+        Sample a valid start state for the episode, optionally using curriculum learning
+        '''
+        goal_x, goal_y = config.GOAL_POS
+
+        if not config.USE_CURRICULUM:
+            # random start state sampling without curriculum
+            while True:
+                x = np.random.randint(0, config.NX)
+                y = np.random.randint(0, config.NY)
+                theta = np.random.randint(0, config.N_THETA)
+
+                if not env.is_collision((x, y, theta)):
+                    return x, y, theta
+
+        # curriculum learning
+        max_dist = None
+        for start_ep, end_ep, dist in config.CURRICULUM_PHASES:
+            if start_ep <= episode < end_ep:
+                max_dist = dist
+                break
+
+        while True:
+            if max_dist is None:
+                # fase hard → random sampling in the whole grid
+                x = np.random.randint(0, config.NX)
+                y = np.random.randint(0, config.NY)
+            else:
+                # fase easy → sample near the goal
+                dx = np.random.randint(-max_dist, max_dist + 1)
+                dy = np.random.randint(-max_dist, max_dist + 1)
+
+                x = np.clip(goal_x + dx, 0, config.NX - 1)
+                y = np.clip(goal_y + dy, 0, config.NY - 1)
+
+            theta = np.random.randint(0, config.N_THETA)
+
+            if not env.is_collision((x, y, theta)):
+                return x, y, theta
+
     def train(self, env, num_episodes=2000, max_steps=500):
         '''
         Main training loop for DQN
@@ -158,13 +199,7 @@ class DQNAgent:
 
         for episode in range(num_episodes):
 
-            while True:
-                x = np.random.randint(0, config.NX)
-                y = np.random.randint(0, config.NY)
-                theta = np.random.randint(0, config.N_THETA)
-
-                if not env.is_collision((x, y, theta)):
-                    break
+            x, y, theta = self.sample_start_state(env, episode)
 
             theta_rad = theta * config.DELTA_THETA_RAD
             goal_x, goal_y = config.GOAL_POS

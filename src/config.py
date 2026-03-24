@@ -67,3 +67,10 @@ MAX_STEPS_PER_EPISODE = 500
 # Planning / RL method selection
 METHOD = "dqn"    # "vi", "q_learning", "dqn"
 
+USE_CURRICULUM = True
+CURRICULUM_PHASES = [
+    (0, 500, 10),     # (start_ep, end_ep, max_distance_from_goal)
+    (500, 1500, 30),
+    (1500, 1_000_000, None)  # None = random
+]
+
