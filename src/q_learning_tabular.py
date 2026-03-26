@@ -13,35 +13,73 @@ class QLearningTabular:
         self.epsilon_end = config.EPSILON_END
         self.epsilon_decay_steps = config.EPSILON_DECAY_STEPS
 
-        # Q-table 4D
+        # Q-table 7D
         self.Q = np.zeros(
-            (config.NX, config.NY, config.N_THETA, config.N_ACTIONS),
+            (
+                config.NX,
+                config.NY,
+                config.N_THETA,
+                8,   # goal direction bins
+                3,   # sensor front
+                3,   # sensor left
+                3,   # sensor right
+                config.N_ACTIONS
+            ),
             dtype=np.float32
         )
 
         self.total_steps = 0
 
+    def build_state(self, raw_state):
+        '''
+        Build enriched discrete state (tabular-friendly version of DQN state)
+        '''
+
+        x, y, theta = raw_state
+        goal_x, goal_y = config.GOAL_POS
+
+        # --- goal direction ---
+        dx = goal_x - x
+        dy = goal_y - y
+
+        angle_to_goal = np.arctan2(dy, dx)
+        theta_rad = theta * config.DELTA_THETA_RAD
+
+        angle_diff = angle_to_goal - theta_rad
+
+        # discretize into 8 bins
+        igoal = int(((angle_diff + np.pi) / (2 * np.pi)) * 8) % 8
+
+        # --- sensors ---
+        sensors = self.env.get_sensors((x, y, theta))
+
+        def discretize_sensor(s):
+            if s < 0.2:
+                return 0
+            elif s < 0.5:
+                return 1
+            else:
+                return 2
+
+        s0 = discretize_sensor(sensors[0])
+        s1 = discretize_sensor(sensors[1])
+        s2 = discretize_sensor(sensors[2])
+
+        return (x, y, theta, igoal, s0, s1, s2)
+
     def select_action(self, state):
         '''
         Epsilon-greedy action selection
-        param state: tuple (x, y, theta_idx)
-        return: action index
         '''
 
-        x, y, theta = state
+        x, y, theta, igoal, s0, s1, s2 = state
 
         if np.random.rand() < self.epsilon:
             return np.random.choice(config.N_ACTIONS)
         else:
-            return np.argmax(self.Q[x, y, theta])
+            return np.argmax(self.Q[x, y, theta, igoal, s0, s1, s2])
 
-    '''def update_epsilon(self):
-        
-        Linear decay of epsilon over time
-        
 
-        fraction = min(self.total_steps / self.epsilon_decay_steps, 1.0)
-        self.epsilon = self.epsilon_start + fraction * (self.epsilon_end - self.epsilon_start)'''
 
     def update_epsilon_episode(self, episode):
         fraction = min(episode / config.N_EPISODES, 1.0)
@@ -69,11 +107,12 @@ class QLearningTabular:
                 y = np.random.randint(0, config.NY)
                 theta = np.random.randint(0, config.N_THETA)
 
-                state = (int(x), int(y), int(theta))
+                raw_state = (int(x), int(y), int(theta))
 
-                if not self.env.is_collision(state):
+                if not self.env.is_collision(raw_state):
                     break
-            #state = (20, 20, 0)  # start state
+
+            state = self.build_state(raw_state)
 
             episode_reward = 0.0
             done = False
@@ -81,43 +120,47 @@ class QLearningTabular:
             # --- Episode loop ---
             for step in range(config.MAX_STEPS_PER_EPISODE):
 
-                # Select action (epsilon-greedy)
+                # Select action
                 action = self.select_action(state)
 
                 # Environment step
-                next_state, reward, done = self.env.step(state, action)
-                next_state = tuple(map(int, next_state))
+                next_raw, reward, done = self.env.step(raw_state, action)
+                next_raw = tuple(map(int, next_raw))
+
+                next_state = self.build_state(next_raw)
 
                 episode_reward += reward
 
-                x, y, theta = state
-                nx, ny, ntheta = next_state
+                x, y, theta, igoal, s0, s1, s2 = state
+                nx, ny, ntheta, nigoal, ns0, ns1, ns2 = next_state
 
                 # --- Q-learning update ---
-                best_next_q = 0.0 if done else np.max(self.Q[nx, ny, ntheta])
+                best_next_q = 0.0 if done else np.max(
+                    self.Q[nx, ny, ntheta, nigoal, ns0, ns1, ns2]
+                )
 
                 td_target = reward + self.gamma * best_next_q
-                td_error = td_target - self.Q[x, y, theta, action]
+                td_error = td_target - self.Q[x, y, theta, igoal, s0, s1, s2, action]
 
-                self.Q[x, y, theta, action] += self.alpha * td_error
+                self.Q[x, y, theta, igoal, s0, s1, s2, action] += self.alpha * td_error
 
                 # Move to next state
+                raw_state = next_raw
                 state = next_state
                 self.total_steps += 1
 
-                # Update epsilon after each step
+                # Update epsilon
                 self.update_epsilon(self.total_steps)
 
                 if done:
-                    # Track the outcome
                     if reward == config.R_GOAL:
                         goals_reached += 1
                     elif reward == config.R_COLLISION:
                         collisions_count += 1
                     break
 
-            # --- Logging with diagnostics ---
-            if episode % 1000 == 0:
+            # --- Logging ---
+            if episode % 100 == 0:
                 success_rate = (goals_reached / episode) * 100
                 print(
                     f"Episode {episode:5d}/{config.N_EPISODES} | "
@@ -127,48 +170,41 @@ class QLearningTabular:
                     f"Collisions: {collisions_count:5d}"
                 )
 
-            # Update epsilon after each episode
             self.update_epsilon_episode(episode)
 
         print(f"\nTraining Complete!")
         print(f"Final Statistics - Goals: {goals_reached}, Collisions: {collisions_count}")
         print(f"Final Success Rate: {(goals_reached / config.N_EPISODES) * 100:.2f}%")
 
-    def get_greedy_action(self, state):
+    def get_greedy_action(self, raw_state):
         '''
-        Get the action with the highest Q-value for a given state
-        '''
-
-        x, y, theta = state
-        x, y, theta = int(x), int(y), int(theta)
-        return np.argmax(self.Q[x, y, theta])
-
-    def extract_policy(self):
-        '''
-        Extract the greedy policy from the Q-table
+        Get greedy action from enriched state
         '''
 
-        return np.argmax(self.Q, axis=3)  # shape (NX, NY, N_THETA) with action indices
+        state = self.build_state(raw_state)
+        x, y, theta, igoal, s0, s1, s2 = state
+
+        return np.argmax(self.Q[x, y, theta, igoal, s0, s1, s2])
 
     def evaluate(self, n_episodes=100):
         '''
-        Evaluate the learned policy by running episodes and measuring success rate
+        Evaluate learned policy
         '''
 
         success_count = 0
 
         for episode in range(n_episodes):
-            state = (0, 0, 0)  # start state
+            raw_state = (0, 0, 0)
             done = False
 
             for step in range(config.MAX_STEPS_PER_EPISODE):
-                action = self.get_greedy_action(state)
-                next_state, reward, done = self.env.step(state, action)
+                action = self.get_greedy_action(raw_state)
+                next_raw, reward, done = self.env.step(raw_state, action)
 
-                state = next_state
+                raw_state = next_raw
 
                 if done:
-                    if self.env.is_goal(state):
+                    if self.env.is_goal(raw_state):
                         success_count += 1
                     break
 
@@ -176,20 +212,10 @@ class QLearningTabular:
         print(f"Evaluation: Success Rate = {success_rate:.2%} ({success_count}/{n_episodes})")
 
     def save_model(self, filename='q_learning_model.npz'):
-        '''
-        Save the Q-table to a file
-        '''
-
         np.savez_compressed(filename, Q=self.Q)
         print(f"Model saved to {filename}")
 
     def load_model(self, filename='q_learning_model.npz'):
-        '''
-        Load the Q-table from a file
-        param filename: path to the saved model file
-        return: True if load successful, False otherwise
-        '''
-
         try:
             data = np.load(filename)
             self.Q = data['Q']
