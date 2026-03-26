@@ -52,6 +52,9 @@ def plot_static_path(env, path, title="Simulation Path"):
     filename = f"{title.replace(' ', '_').replace('(', '').replace(')', '').replace(',', '')}.png"
     plt.savefig(filename)
     print(f"Static path image saved: {filename}")
+
+    # show the plot (optional, can be commented out if running in headless mode)
+    plt.show()
     
     plt.close(fig)
 
