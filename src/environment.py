@@ -3,6 +3,7 @@ from shapely.geometry import Polygon
 from shapely.affinity import translate, rotate
 from src import config
 
+
 class Environment:
     def __init__(self):
         self.config = config
@@ -15,7 +16,7 @@ class Environment:
         # Base robot footprint at (0,0) with 0 rotation
         l, w = config.ROBOT_LENGTH, config.ROBOT_WIDTH
         self.base_robot_footprint = Polygon([
-            (-l/2, -w/2), (l/2, -w/2), (l/2, w/2), (-l/2, w/2)
+            (-l / 2, -w / 2), (l / 2, -w / 2), (l / 2, w / 2), (-l / 2, w / 2)
         ])
 
         self.world_boundary = Polygon([(0, 0), (self.nx, 0), (self.nx, self.ny), (0, self.ny)])
@@ -23,14 +24,14 @@ class Environment:
     def _get_robot_footprint(self, state):
         x, y, theta_idx = state
         theta_rad = theta_idx * config.DELTA_THETA_RAD
-        
+
         # rotate around its own center before translating
         rotated = rotate(self.base_robot_footprint, theta_rad, origin='center', use_radians=True)
         return translate(rotated, x, y)
 
     def is_collision(self, state):
         x, y, _ = state
-        # Quick pre-check: if center is out, definitely a collision 
+        # Quick pre-check: if center is out, definitely a collision
         # avoid expensive polygon checks
         if x < 0 or x >= self.nx or y < 0 or y >= self.ny:
             return True
@@ -101,7 +102,7 @@ class Environment:
             reward = self.config.R_ROTATE
         elif action == self.config.ACTIONS['MOVE_FORWARD']:
             theta_rad = theta_idx * self.config.DELTA_THETA_RAD
-            #compute continuous next position
+            # compute continuous next position
             cont_x = x + self.config.STEP_SIZE * np.cos(theta_rad)
             cont_y = y + self.config.STEP_SIZE * np.sin(theta_rad)
             if continuous:
@@ -116,10 +117,11 @@ class Environment:
 
         next_state = (next_x, next_y, next_theta)
 
+
         # --- Distance shaping ---
-        #goal_x, goal_y, _ = self.config.GOAL_STATE
+        # goal_x, goal_y, _ = self.config.GOAL_STATE
         if 40 <= y <= 65:
-            goal_x, goal_y = 20, 75 # intermediate waypoint to encourage navigating through the gap
+            goal_x, goal_y = 20, 75  # intermediate waypoint to encourage navigating through the gap
         else:
             goal_x, goal_y, _ = self.config.GOAL_STATE
 
@@ -138,20 +140,15 @@ class Environment:
 
         reward += 0.1 * (np.pi - angle_diff)
 
-
-
         # Terminal checks
         if self.is_collision(next_state):
             reward += self.config.R_COLLISION
             terminated = True
-            #next_state = state  # stay in place if collision, but allow learning to recover instead of ending episode immediately
-            #terminated = False  # don't end episode on collision to allow learning recovery strategies
+            # next_state = state  # stay in place if collision, but allow learning to recover instead of ending episode immediately
+            # terminated = False  # don't end episode on collision to allow learning recovery strategies
 
         elif self.is_goal(next_state):
             reward += self.config.R_GOAL
             terminated = True
 
-
         return next_state, reward, terminated
-
-

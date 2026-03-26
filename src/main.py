@@ -237,6 +237,9 @@ if __name__ == "__main__":
 
         planner.train(env, num_episodes=config.N_EPISODES)
 
+        # save the trained model
+        planner.save_model("dqn_model.pth")
+
     else:
         raise ValueError(f"Unknown METHOD in config: {config.METHOD}")
 
@@ -271,9 +274,6 @@ if __name__ == "__main__":
         # Simulate discrete path
         path = simulate_dqn_policy(planner, env, start_state, continuous_mode=False)
         plot_static_path(env, path, title=f"Discrete Path from {start_state}")
-        animate_path(env, path, title=f"Discrete Animation from {start_state}")
+        #animate_path(env, path, title=f"Discrete Animation from {start_state}")
 
-        # Simulate continuous path
-        cont_path = simulate_dqn_policy(planner, env, start_state, continuous_mode=True)
-        plot_static_path(env, cont_path, title=f"Continuous Path from {start_state}")
-        animate_path(env, cont_path, title=f"Continuous Animation from {start_state}")
+
