@@ -24,7 +24,7 @@ class DQNAgent:
         tau=0.001,
         epsilon_start=1.0,
         epsilon_end=0.05,
-        epsilon_decay=200000
+        epsilon_decay=250000
     ):
 
         self.device = torch.device(device)
@@ -356,3 +356,10 @@ class DQNAgent:
             action = q_values.argmax(dim=1).item()
 
         return action
+
+    def save_model(self, path="dqn_model.pth"):
+        '''
+        Save the Q-network weights to a file
+        '''
+        torch.save(self.q_net.state_dict(), path)
+        print(f"Model saved to {path}")
