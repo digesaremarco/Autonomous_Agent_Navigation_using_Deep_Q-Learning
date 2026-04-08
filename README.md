@@ -10,6 +10,7 @@ This project implements an autonomous agent capable of navigating a 2D grid envi
 * **Continuous Training:** The agent is trained directly in a continuous environment, reducing the sim-to-real gap.
 * **Collision Detection:** Uses the `Shapely` library to calculate the exact intersection between the robot's rotated footprint and obstacles, including map boundaries as impassable barriers.
 * **Sensor-Based Perception:** The agent uses three simulated distance sensors (front, left, right) to perceive nearby obstacles.
+* **Curriculum Learning (Optional):** The agent can be trained progressively by starting from easier initial states (near the goal) and gradually increasing task difficulty.
 * **Advanced Reward Shaping:** Uses a system of rewards and penalties to guide learning:
     * `R_GOAL`: Positive reward for reaching the target.
     * `R_COLLISION`: Severe penalty for collisions with obstacles or boundaries.
@@ -55,6 +56,7 @@ The `DQNAgent` learns an approximate action-value function $Q(s,a)$ using a neur
 * **Loss Function:** Huber loss (`SmoothL1Loss`) for stability.
 * **Exploration:** Epsilon-greedy policy with exponential decay.
 * **Gradient Clipping:** Prevents instability during training.
+* **Curriculum Learning:** Initial states can be sampled progressively closer to the goal to stabilize early training and improve convergence.
 
 ### 3. Visualization (`src/visualizer.py`)
 Uses `Matplotlib` to create graphical representations of policies.
@@ -98,19 +100,49 @@ The application entry point that orchestrates the entire process.
 ## Results
 
 ### Final Results (Learned Policy)
-These results show the agent's behavior after training with reward shaping and sensor-based perception. The agent demonstrates goal-directed navigation and obstacle avoidance.
 
-|           Continuous Simulation from (10, 10, 0°) - Static            |                                              Continuous Simulation from (10, 10, 0°) - Animation                                               |
-|:---------------------------------------------------------------------:|:----------------------------------------------------------------------------------------------------------------------------------------------:|
+These results show the agent's behavior after training. Thanks to reward shaping, sensor-based perception, and stable DQN training, the agent successfully reaches the goal in both discrete and continuous environments.
+
+---
+
+### Discrete Simulations
+
+In the discrete environment, the agent follows stable and optimal paths aligned with the grid structure.
+
+| Simulation from (10, 10, 0°) - Static | Simulation from (10, 10, 0°) - Animation |
+|:---:|:---:|
+| <img src="results/DQN/Discrete_Path_from_10_10_0.png" width="100%"> | <img src="results/DQN/Discrete_Animation_from_10_10_0.gif" width="100%"> |
+
+| Simulation from (50, 50, 90°) - Static | Simulation from (50, 50, 90°) - Animation |
+|:---:|:---:|
+| <img src="results/DQN/Discrete_Path_from_50_50_18.png" width="100%"> | <img src="results/DQN/Discrete_Animation_from_50_50_18.gif" width="100%"> |
+
+| Simulation from (70, 72, 0°) - Static | Simulation from (70, 72, 0°) - Animation |
+|:---:|:---:|
+| <img src="results/DQN/Discrete_Path_from_70_72_0.png" width="100%"> | <img src="results/DQN/Discrete_Animation_from_70_72_0.gif" width="100%"> |
+
+---
+
+### Continuous Simulations
+
+In the continuous environment, the agent maintains robust navigation behavior and successfully reaches the goal, demonstrating good generalization despite the absence of grid discretization.
+
+| Continuous Simulation from (10, 10, 0°) - Static | Continuous Simulation from (10, 10, 0°) - Animation |
+|:---:|:---:|
 | <img src="results/DQN/Continuous_Path_from_10_10_0.png" width="100%"> | <img src="results/DQN/Continuous_Animation_from_10_10_0.gif" width="100%"> |
 
-|           Continuous Simulation from (50, 50, 90°) - Static           |            Continuous Simulation from (50, 50, 90°) - Animation             |
-|:---------------------------------------------------------------------:|:---------------------------------------------------------------------------:|
+| Continuous Simulation from (50, 50, 90°) - Static | Continuous Simulation from (50, 50, 90°) - Animation |
+|:---:|:---:|
 | <img src="results/DQN/Continuous_Path_from_50_50_18.png" width="100%"> | <img src="results/DQN/Continuous_Animation_from_50_50_18.gif" width="100%"> |
 
-|           Continuous Simulation from (70, 72, 0°) - Static            |            Continuous Simulation from (70, 72, 0°) - Animation             |
-|:---------------------------------------------------------------------:|:--------------------------------------------------------------------------:|
+| Continuous Simulation from (70, 72, 0°) - Static | Continuous Simulation from (70, 72, 0°) - Animation |
+|:---:|:---:|
 | <img src="results/DQN/Continuous_Path_from_70_72_0.png" width="100%"> | <img src="results/DQN/Continuous_Animation_from_70_72_0.gif" width="100%"> |
+
+**Observation:**  
+While the agent reliably reaches the goal in the discrete environment, one challenging scenario (starting from `(70, 72, 0°)`) may fail in continuous mode due to accumulated approximation errors and the absence of grid snapping.
+
+This highlights a residual **sim-to-real gap**, especially in configurations that require precise maneuvering near obstacles.
 
 ---
 
@@ -139,3 +171,29 @@ The agent initially relied only on global state variables, which limited its abi
 * **Solution:** Introduced **sensor-based observations**, allowing the agent to perceive local geometry and improve obstacle avoidance.
 
 ---
+
+## Conclusion
+
+This project demonstrates that a **Deep Q-Network (DQN)** can effectively learn navigation policies for a non-holonomic robot in a structured environment with obstacles.
+
+By combining **feature-based state representation**, **sensor inputs**, and **reward shaping**, the agent is able to:
+* Learn goal-directed behaviors
+* Avoid obstacles reliably
+* Generalize from training to both discrete and continuous environments
+
+The introduction of **stabilization techniques** (Replay Buffer, Target Network, Double DQN, Gradient Clipping) was essential to ensure convergence and prevent divergence during training. Additionally, **curriculum learning** proved to be a valuable optional strategy to accelerate early learning and improve policy quality.
+
+However, the project also highlights some important limitations:
+* A residual **sim-to-real gap** remains, especially in scenarios requiring high precision near obstacles
+* The learned policy depends heavily on **reward shaping**, which requires careful tuning
+* The state representation, although effective, is still manually engineered and not fully end-to-end
+
+### Future Work
+
+Several improvements could be explored:
+* Extending to **continuous action spaces** 
+* Learning directly from raw observations (e.g., images or occupancy grids)
+* Incorporating **uncertainty or noise** in sensors to improve robustness
+* Applying **domain randomization** to further reduce the sim-to-real gap
+
+Overall, the project provides a strong foundation for autonomous navigation using deep reinforcement learning, bridging the gap between classical planning methods and modern learning-based approaches.
