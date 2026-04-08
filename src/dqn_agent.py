@@ -4,6 +4,7 @@ import torch.optim as optim
 import numpy as np
 import random
 from tqdm import tqdm
+import os
 
 from src import config
 from src.network import QNetwork
@@ -24,7 +25,7 @@ class DQNAgent:
         tau=0.001,
         epsilon_start=1.0,
         epsilon_end=0.05,
-        epsilon_decay=250000
+        epsilon_decay=250_000
     ):
 
         self.device = torch.device(device)
@@ -110,8 +111,6 @@ class DQNAgent:
 
         # Target Q values
         with torch.no_grad():
-            #max_next_q = self.target_net(next_state).max(1)[0]
-            #target_q = reward + self.gamma * max_next_q * (1 - done)
 
             # Double DQN: action selection from q_net, evaluation from target_net
             next_actions = self.q_net(next_state).argmax(1)
@@ -228,7 +227,7 @@ class DQNAgent:
                 next_raw, reward, done = env.step(
                     (x, y, theta),
                     action,
-                    continuous=False
+                    continuous=True
                 )
 
                 nx, ny, ntheta = next_raw
@@ -363,3 +362,14 @@ class DQNAgent:
         '''
         torch.save(self.q_net.state_dict(), path)
         print(f"Model saved to {path}")
+
+    def load_model(self, path="dqn_model.pth"):
+        '''
+        Load the Q-network weights from a file
+        '''
+        if os.path.exists(path):
+            self.q_net.load_state_dict(torch.load(path, map_location=self.device))
+            self.target_net.load_state_dict(self.q_net.state_dict())
+            print(f"Model loaded from {path}")
+        else:
+            print(f"No model file found at {path}. Starting with random weights.")

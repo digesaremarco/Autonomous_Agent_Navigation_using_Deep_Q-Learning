@@ -51,10 +51,14 @@ class Environment:
         x, y, theta = state
         gx, gy, gtheta = self.goal_state
 
-        check_x = int(np.round(x))
-        check_y = int(np.round(y))
+        #check_x = int(np.round(x))
+        #check_y = int(np.round(y))
+        #return (check_x == gx) and (check_y == gy) and (theta == gtheta)
 
-        return (check_x == gx) and (check_y == gy) and (theta == gtheta)
+        dist = np.sqrt((x - gx) ** 2 + (y - gy) ** 2)
+        angle_diff = abs(theta - gtheta) % self.n_theta
+
+        return dist < 1.5 #and (angle_diff <= 2 or angle_diff >= self.n_theta - 2)
 
     def get_sensors(self, state):
 
@@ -84,9 +88,8 @@ class Environment:
 
         return np.array(distances, dtype=np.float32)
 
+
     def step(self, state, action, continuous=False):
-        if self.is_goal(state):
-            return state, 0.0, True
 
         x, y, theta_idx = state
         next_x, next_y = float(x), float(y)
@@ -118,18 +121,18 @@ class Environment:
         next_state = (next_x, next_y, next_theta)
 
 
-        # --- Distance shaping ---
-        # goal_x, goal_y, _ = self.config.GOAL_STATE
         if 40 <= y <= 65:
             goal_x, goal_y = 20, 75  # intermediate waypoint to encourage navigating through the gap
         else:
             goal_x, goal_y, _ = self.config.GOAL_STATE
 
+        # --- Distance shaping ---
         prev_distance = np.sqrt((x - goal_x) ** 2 + (y - goal_y) ** 2)
         new_distance = np.sqrt((next_x - goal_x) ** 2 + (next_y - goal_y) ** 2)
 
         # Positive reward if moving closer
-        reward += 5 * (prev_distance - new_distance)
+        if new_distance > 2:
+            reward += 3 * (prev_distance - new_distance) # 5
 
         # Angle shaping: reward for facing towards the goal
         goal_theta = np.arctan2(goal_y - y, goal_x - x)
@@ -138,7 +141,8 @@ class Environment:
         angle_diff = abs(goal_theta - robot_theta)
         angle_diff = min(angle_diff, 2 * np.pi - angle_diff)
 
-        reward += 0.1 * (np.pi - angle_diff)
+        if new_distance > 2:
+            reward += 0.1 * (np.pi - angle_diff)
 
         # Terminal checks
         if self.is_collision(next_state):
@@ -152,3 +156,5 @@ class Environment:
             terminated = True
 
         return next_state, reward, terminated
+
+

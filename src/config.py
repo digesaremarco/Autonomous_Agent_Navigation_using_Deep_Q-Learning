@@ -43,7 +43,7 @@ OBSTACLES_VERTICES = [
 ]
 
 # Rewards
-R_GOAL = 200.0
+R_GOAL = 1000.0
 R_COLLISION = -100.0
 R_STEP = -0.1
 R_ROTATE = -0.5
@@ -62,6 +62,7 @@ MAX_STEPS_PER_EPISODE = 500
 
 # Planning / RL method selection
 METHOD = "dqn"  # "vi", "q_learning", "dqn"
+TRAIN = True  # Whether to train the agent (if False, will only run tests)
 
 USE_CURRICULUM = False
 CURRICULUM_PHASES = [

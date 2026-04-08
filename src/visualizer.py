@@ -44,7 +44,11 @@ def plot_static_path(env, path, title="Simulation Path"):
     x_coords = [state[0] for state in path]
     y_coords = [state[1] for state in path]
     ax.plot(x_coords, y_coords, 'r--', label='Path (Center)')
-    
+
+    # Draw goal coordinates for clarity
+    gx, gy, _ = env.goal_state
+    ax.plot(gx, gy, 'go', label='Goal Center')
+
     ax.legend()
     ax.set_title(title)
     

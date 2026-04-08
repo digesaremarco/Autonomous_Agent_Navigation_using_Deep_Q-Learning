@@ -141,7 +141,7 @@ def simulate_dqn_policy(planner, env, start_state, continuous_mode=False):
 
     path = [start_state]
     current_state = start_state
-    max_steps = config.NX * config.NY
+    max_steps = config.MAX_STEPS_PER_EPISODE
 
     for i in range(max_steps):
         x, y, theta = current_state
@@ -232,13 +232,12 @@ if __name__ == "__main__":
         planner = DQNAgent(
             state_dim=state_dim,
             action_dim=action_dim,
-            device="cuda" if torch.cuda.is_available() else "cpu"
+            device="cuda:1" if torch.cuda.is_available() else "cpu"
         )
 
-        planner.train(env, num_episodes=config.N_EPISODES)
-
-        # save the trained model
-        planner.save_model("dqn_model.pth")
+        if config.TRAIN:
+            planner.train(env, num_episodes=config.N_EPISODES)
+            planner.save_model("dqn_model.pth") # save the trained model
 
     else:
         raise ValueError(f"Unknown METHOD in config: {config.METHOD}")
@@ -268,12 +267,21 @@ if __name__ == "__main__":
             animate_path(env, cont_path, title=f"Continuous Animation from {start_state}")
 
     elif method == "dqn":
+        if not config.TRAIN:
+            # load the trained model (if not already loaded in the agent)
+            planner.load_model("dqn_model.pth")
+
         run_dqn_policy_tests(planner, env)
 
     for start_state in start_states:
         # Simulate discrete path
         path = simulate_dqn_policy(planner, env, start_state, continuous_mode=False)
         plot_static_path(env, path, title=f"Discrete Path from {start_state}")
-        #animate_path(env, path, title=f"Discrete Animation from {start_state}")
+        animate_path(env, path, title=f"Discrete Animation from {start_state}")
+
+        # Simulate continuous path
+        cont_path = simulate_dqn_policy(planner, env, start_state, continuous_mode=True)
+        plot_static_path(env, cont_path, title=f"Continuous Path from {start_state}")
+        animate_path(env, cont_path, title=f"Continuous Animation from {start_state}")
 
 
