@@ -185,6 +185,39 @@ class DQNAgent:
             if not env.is_collision((x, y, theta)):
                 return x, y, theta
 
+
+    def plot_metrics(avg_rewards, avg_losses, step=100):
+        """
+        Plot training metrics computed every `step` episodes.
+        avg_rewards[i] is the average reward over the last 100 episodes
+        computed at episode i*step.
+        """
+        import matplotlib.pyplot as plt
+
+        x = [i * step for i in range(len(avg_rewards))]  # 0, 100, 200, ...
+
+        plt.figure(figsize=(12, 5))
+
+        plt.subplot(1, 2, 1)
+        plt.plot(x, avg_rewards, label=f'Avg Reward (every {step} episodes)')
+        plt.xlabel('Episode')
+        plt.ylabel('Reward')
+        plt.title('DQN Training Rewards')
+        plt.legend()
+        plt.grid()
+
+        plt.subplot(1, 2, 2)
+        plt.plot(x, avg_losses, label=f'Avg Loss (every {step} episodes)', color='orange')
+        plt.xlabel('Episode')
+        plt.ylabel('Loss')
+        plt.title('DQN Training Loss')
+        plt.legend()
+        plt.grid()
+
+        plt.tight_layout()
+        plt.show()
+
+
     def train(self, env, num_episodes=2000, max_steps=500):
         '''
         Main training loop for DQN
@@ -195,6 +228,8 @@ class DQNAgent:
 
         episode_rewards = []
         episode_losses = []
+        avg_rewards = []
+        avg_losses = []
 
         for episode in range(num_episodes):
 
@@ -227,6 +262,7 @@ class DQNAgent:
                 next_raw, reward, done = env.step(
                     (x, y, theta),
                     action,
+                    episode,
                     continuous=True
                 )
 
@@ -266,12 +302,17 @@ class DQNAgent:
             if episode % 100 == 0:
                 avg_reward = np.mean(episode_rewards[-100:])
                 avg_loss = np.mean(episode_losses[-100:])
+                avg_rewards.append(avg_reward)
+                avg_losses.append(avg_loss)
 
                 print("--------------------------------------------------")
                 print(f"Episode: {episode}")
                 print(f"Average Reward (last 100): {avg_reward:.2f}")
                 print(f"Average Loss   (last 100): {avg_loss:.5f}")
                 print(f"Epsilon: {self.epsilon:.4f}")
+
+        # plot reward and loss
+        DQNAgent.plot_metrics(avg_rewards, avg_losses)
 
     def extract_policy(self, env):
         """

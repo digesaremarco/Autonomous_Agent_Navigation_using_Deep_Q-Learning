@@ -89,7 +89,7 @@ class Environment:
         return np.array(distances, dtype=np.float32)
 
 
-    def step(self, state, action, continuous=False):
+    def step(self, state, action, episode=2500, continuous=False ):
 
         x, y, theta_idx = state
         next_x, next_y = float(x), float(y)
@@ -120,8 +120,8 @@ class Environment:
 
         next_state = (next_x, next_y, next_theta)
 
-
-        if 40 <= y <= 65:
+        # Subgoal
+        if 40 <= y <= 65 and episode < 3000: # Keep the intermediate sub-goal only during early training episodes, then disable it to learn a more generic policy toward the real goal.
             goal_x, goal_y = 20, 75  # intermediate waypoint to encourage navigating through the gap
         else:
             goal_x, goal_y, _ = self.config.GOAL_STATE
