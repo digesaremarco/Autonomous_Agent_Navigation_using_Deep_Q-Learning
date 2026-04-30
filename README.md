@@ -98,6 +98,25 @@ The application entry point that orchestrates the entire process.
     * Several simulations will be executed and saved as images (`.png`) and animations (`.gif`).
 
 ## Results
+### Training Performance
+
+To assess the effectiveness and stability of the learning process, we monitored the evolution of both cumulative reward and training loss throughout the entire training procedure.
+
+<p align="center">
+  <img src="results/DQN/rewardandloss.png" width="80%">
+</p>
+
+**Reward Dynamics.**  
+The reward curve exhibits a clear upward trend over training, indicating that the agent progressively improves its policy and successfully learns to maximize long-term returns. The smooth increase suggests that the combination of reward shaping and exploration provides a sufficiently informative learning signal.
+
+**Loss Behavior and Generalization.**  
+Around episode ~3000, a noticeable change in the loss profile is observed, accompanied by a mild fluctuation in the reward. This transition corresponds to the **planned removal of intermediate subgoals**, introduced to evaluate the agent’s ability to generalize under a sparser reward regime. As expected, the reduced reward density temporarily increases learning difficulty, resulting in higher variance in both loss and performance.
+
+**Adaptation and Stability.**  
+Despite the initial degradation, the agent rapidly recovers and stabilizes, demonstrating robustness to changes in the reward structure. This indicates that the learned policy is not overfitted to auxiliary guidance and can adapt to more realistic settings where intermediate rewards are unavailable.
+
+**Key Insight.**  
+While reward shaping accelerates early learning, the agent retains the ability to transition toward goal-driven behavior under sparse rewards, confirming effective generalization.
 
 ### Final Results (Learned Policy)
 
